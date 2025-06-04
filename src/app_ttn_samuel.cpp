@@ -109,6 +109,8 @@ bool recebido = false;
 //Variável que armazena os dados recebidos da TTN
 String dados_recebidos;
 
+int luz = 0;
+
 
 // These callbacks are only used in over-the-air activation, so they are
 // left empty here (we cannot leave them out completely unless
@@ -130,7 +132,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 60; //Padrão 60
+const unsigned TX_INTERVAL = 6; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
@@ -201,7 +203,8 @@ void do_send(osjob_t* j) {
 
 
   //#ifdef heltec
-    int luz = !digitalRead(PINO_LUZ);
+    //int luz = !digitalRead(PINO_LUZ);
+    luz = analogRead(PINO_LUZ);
   //#endif
 
   //Acende luzes arduino
@@ -250,7 +253,7 @@ void do_send(osjob_t* j) {
       #ifdef heltec
         myString = myString + String(luz);
       #endif
-      myString = myString + "-  Pressão: ";
+      myString = myString + " Pressão: ";
       myString = myString + String(p);
     }
 
@@ -262,6 +265,8 @@ void do_send(osjob_t* j) {
     lpp.addTemperature(1, t);
     lpp.addRelativeHumidity(3, h);
     lpp.addLuminosity(2,luz);
+    lpp.addBarometricPressure(4, p);
+    
     #else
       //Converte para const void para copair para memória do LoRa
       const void * text = myString.c_str();
@@ -353,22 +358,28 @@ void do_send(osjob_t* j) {
         myString = myString + " ºC";
         Heltec.display->setFont(ArialMT_Plain_10);
         Heltec.display->drawString(0, 0, "Temperatura");
-        Heltec.display->setFont(ArialMT_Plain_24);
+        Heltec.display->setFont(ArialMT_Plain_16);
         Heltec.display->drawString(0, 10, myString);
         myString = "Umidade: ";
-        myString = myString + String(p);
+        myString = myString + String(h);
         myString = myString + " %";
         Heltec.display->setFont(ArialMT_Plain_10);
-        Heltec.display->drawString(0, 32, myString);
+        Heltec.display->drawString(0, 24, myString);
+        Heltec.display->setFont(ArialMT_Plain_10);
+        myString = "Pressão: ";
+        myString = myString + String(p);
+        myString = myString + " hPa";
+        Heltec.display->setFont(ArialMT_Plain_10);
+        Heltec.display->drawString(0, 34, myString);
         Heltec.display->setFont(ArialMT_Plain_10);
         myString = "Frq: ";
         myString = myString + String((LMIC.freq)/1000);
         myString = myString + " kHz - ";
         myString = myString + String(contador);
-        Heltec.display->drawString(0, 42, myString);
+        Heltec.display->drawString(0, 54, myString);
         myString = "Luminosidade: ";
         myString = myString + String(luz);
-        Heltec.display->drawString(0, 52, myString);
+        Heltec.display->drawString(0, 44, myString);
         Heltec.display->display();
       #endif
     }
@@ -465,7 +476,7 @@ void setup() {
 
   //Inicialza pinagem luminosidade
   #ifdef heltec
-    pinMode (PINO_LUZ, INPUT);
+    //pinMode (PINO_LUZ, INPUT);
   #endif
 
   #ifdef heltec
