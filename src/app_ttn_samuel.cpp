@@ -132,7 +132,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 6; //Padrão 60
+const unsigned TX_INTERVAL = 600; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
@@ -167,10 +167,10 @@ void do_send(osjob_t* j) {
 		delay(1000);
 	} while (!bmx280.hasValue());
 
-	Serial.print("Pressure: "); Serial.println(bmx280.getPressure());
-	Serial.print("Pressure (64 bit): "); Serial.println(bmx280.getPressure64());
-	Serial.print("Pressure (<64,8>): "); Serial.println(bmx280.getPressureI64());
-	Serial.print("Temperature: "); Serial.println(bmx280.getTemperature());
+	//Serial.print("Pressure: "); Serial.println(bmx280.getPressure());
+	//Serial.print("Pressure (64 bit): "); Serial.println(bmx280.getPressure64());
+	//Serial.print("Pressure (<64,8>): "); Serial.println(bmx280.getPressureI64());
+	//Serial.print("Temperature: "); Serial.println(bmx280.getTemperature());
 
 	//important: measurement data is read from the sensor in function hasValue() only. 
 	//make sure to call get*() functions only after hasValue() has returned true. 
@@ -205,19 +205,15 @@ void do_send(osjob_t* j) {
   //#ifdef heltec
     //int luz = !digitalRead(PINO_LUZ);
     luz = analogRead(PINO_LUZ);
+    //Converte em lux
+    float tensao = luz * (3.3 / 4095.0);
+    if (tensao == 0) tensao = 0.0001;
+    float resistenciaLDR = ((tensao * 10000) - (3.3 / tensao));
+    luz = 500 / pow((resistenciaLDR / 1000.0), 1.4);
+    if (luz > 26000) luz = 26000;
+    //luz = map(luz,4095,100,0,100);
   //#endif
 
-  //Acende luzes arduino
-  if (t > 15){
-    //digitalWrite(2, HIGH);
-    //digitalWrite(3,LOW);
-  }else if(t >= 15 || t < 20){
-    //digitalWrite(2, HIGH);
-    //digitalWrite(3,HIGH);
-  }else{
-    //digitalWrite(2, LOW);
-    //digitalWrite(3,HIGH);
-  }
 
   // Check if there is not a current TX/RX job running
   if (LMIC.opmode & OP_TXRXPEND) {
@@ -235,10 +231,7 @@ void do_send(osjob_t* j) {
     //Se não medir temperatura e umidade escreve msg de erro
     else if (isnan(t) || isnan(p)) {
       myString = "Sem dados do sensor!";
-      // t = 50;
-      // h = 50;
-      // luz = 0;
-      //myString = "0204+26.639.000000073.50682004200.00000000.000000";
+
     }
     else {
       //Usa Mystring para formar um único texto para escrita
@@ -253,7 +246,7 @@ void do_send(osjob_t* j) {
       #ifdef heltec
         myString = myString + String(luz);
       #endif
-      myString = myString + " Pressão: ";
+      myString = myString + " lux - Pressão: ";
       myString = myString + String(p);
     }
 
@@ -274,22 +267,7 @@ void do_send(osjob_t* j) {
       //Copia dados para memória do LoRa
       memcpy(mydata, text, sizeof(mydata));
     #endif
-    // Condicional abaixo utilziado para variar dados entre pares e ímpares
-    // if (resto == 1) {
-    //   //dtostrf(0, 5, 2, (char*)mydata);
-    //   memcpy(mydata, text, sizeof(mydata));
-    //   //for (int i = 0; i < tamanho_vetor; i++){
-    //   //    mydata[i] = (uint8_t) "2";
-    //   //}
-    //   //Serial.println(mydata);
-    // }
-    // else{
-    //   //dtostrf(1, 5, 2, (char*)mydata);
-    //   memcpy(mydata, text, sizeof(mydata));
-    //   //for (int i = 0; i < tamanho_vetor; i++){
-    //   //    mydata[i] = (uint8_t) "1";
-    //   //}
-    // } 
+
    
     #ifdef cayenne
       LMIC_setTxData2(1, lpp.getBuffer(), lpp.getSize(), 0);
@@ -379,6 +357,7 @@ void do_send(osjob_t* j) {
         Heltec.display->drawString(0, 54, myString);
         myString = "Luminosidade: ";
         myString = myString + String(luz);
+        myString = myString + " lux";
         Heltec.display->drawString(0, 44, myString);
         Heltec.display->display();
       #endif
@@ -572,7 +551,7 @@ void setup() {
   LMIC.dn2Dr = DR_SF9;
 
   // Set data rate and transmit power (note: txpow seems to be ignored by the library)
-  LMIC_setDrTxpow(DR_SF9, 15); // Ver se GW está no 10; 14 é 14dBM
+  LMIC_setDrTxpow(DR_SF10, 14); // Ver se GW está no 10; 14 é 14dBM
 
   #ifdef canal_unico
     //Deixa canal único
