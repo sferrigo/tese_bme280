@@ -39,6 +39,9 @@ BMx280I2C bmx280(I2C_ADDRESS);
   #define PINO_LUZ 12 
 //#endif
 
+//SDA 4
+//SCL 15
+
 // BMX280-sensor
 #define BMX_CYCLE 2000  // frequency for BMX280 readout (in ms)
  
@@ -167,11 +170,6 @@ void do_send(osjob_t* j) {
 		delay(1000);
 	} while (!bmx280.hasValue());
 
-	//Serial.print("Pressure: "); Serial.println(bmx280.getPressure());
-	//Serial.print("Pressure (64 bit): "); Serial.println(bmx280.getPressure64());
-	//Serial.print("Pressure (<64,8>): "); Serial.println(bmx280.getPressureI64());
-	//Serial.print("Temperature: "); Serial.println(bmx280.getTemperature());
-
 	//important: measurement data is read from the sensor in function hasValue() only. 
 	//make sure to call get*() functions only after hasValue() has returned true. 
 	if (bmx280.isBME280())
@@ -202,17 +200,17 @@ void do_send(osjob_t* j) {
   Serial.println(p);
 
 
-  //#ifdef heltec
+  #ifdef heltec
     //int luz = !digitalRead(PINO_LUZ);
     luz = analogRead(PINO_LUZ);
     //Converte em lux
     float tensao = luz * (3.3 / 4095.0);
-    if (tensao == 0) tensao = 0.0001;
-    float resistenciaLDR = ((tensao * 10000) - (3.3 / tensao));
+    if (tensao == 0) tensao = 0.00001;
+    float resistenciaLDR = ((tensao * 10000) / (3.3 - tensao));
     luz = 500 / pow((resistenciaLDR / 1000.0), 1.4);
     if (luz > 26000) luz = 26000;
     //luz = map(luz,4095,100,0,100);
-  //#endif
+  #endif
 
 
   // Check if there is not a current TX/RX job running
@@ -284,9 +282,6 @@ void do_send(osjob_t* j) {
       Serial.println((char*)mydata);
     #endif
     Serial.println(LMIC.freq);
-    //Serial.print("Temperatura = ");
-    //Serial.print(temperatura);
-    //Serial.println(" *C");
     
     //Verifica se dados foram recebidos
     //em caso positivo, escreve no display
